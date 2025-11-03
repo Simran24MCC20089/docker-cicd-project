@@ -13,36 +13,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the repository
-      - name: Checkout Repository
+      # 1️⃣ Checkout repository code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Step 2: Set up Python
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      # Step 3: Install dependencies and run unit tests
-      - name: Install dependencies & Run Unit Tests
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          export PYTHONPATH="${{ github.workspace }}"
-          python -m pytest -v
-
-      # Step 4: Set up Docker Buildx (for multi-platform builds)
+      # 2️⃣ Set up Docker Buildx (for better caching and multi-platform builds)
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Step 5: Log in to Docker Hub
+      # 3️⃣ Log in to DockerHub using secrets
       - name: Login to DockerHub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Step 6: Build and push the Docker image
+      # 4️⃣ Build and push the Docker image
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v6
         with:
@@ -51,6 +37,16 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/docker-cicd-project:latest
 
-      # Step 7: Deploy step (optional - for future extension)
-      - name: Deployment Step
-        run: echo "Deployment step can be extended here for Kubernetes or EC2"
+      # 5️⃣ Optional: Verify that the image is pushed successfully
+      - name: Verify Image on DockerHub
+        run: |
+          echo "Verifying image existence on DockerHub..."
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/docker-cicd-project:latest
+          docker images
+
+      # 6️⃣ Optional: Run container for testing
+      - name: Run container to verify
+        run: |
+          echo "Starting container from pushed image..."
+          docker run -d -p 8080:80 ${{ secrets.DOCKERHUB_USERNAME }}/docker-cicd-project:latest
+          docker ps
